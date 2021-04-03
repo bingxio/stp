@@ -1,40 +1,59 @@
 package com.example;
 
-public class Exec {
-  int evaluate(Expr expr) {
-    int result;
+/**
+ * Execute Expression
+ */
+class Exec {
+  /**
+   * Return the value after execution
+   */
+  double evaluate(Expr expr) {
+    double result;
 
     if (expr instanceof BE) {
       result = this.l((BE) expr);
-    } else if (expr instanceof GE) {
-      result = this.g((GE) expr);
+    } else if (expr instanceof GRE) {
+      result = this.g((GRE) expr);
     } else if (expr instanceof I) {
-      result = this.i((I) expr);
+      result = this.l((I) expr);
     } else {
       return -1;
     }
 
-    return result;
+    return Double.parseDouble(
+        String.format("%.2f", result));
   }
 
-  private int i(I expr) {
+  /**
+   * LiteralExpr
+   */
+  private double l(I expr) {
     return expr.val;
   }
 
-  private int l(BE expr) {
-    int x = this.evaluate(expr.L);
-    int y = this.evaluate(expr.R);
+  /**
+   * BinaryExpr
+   */
+  private double l(BE expr) {
+    double x = this.evaluate(expr.L); // L
+    double y = this.evaluate(expr.R); // R
 
-    return switch (expr.P) {
+    System.out.printf("x: %.2f \t y: %.2f \t p: %s\n", x, y, expr.P);
+
+    return switch (expr.P) { // P
       case ADD -> x + y;
       case SUB -> x - y;
       case MUL -> x * y;
       case DIV -> x / y;
+
       default -> throw new IllegalArgumentException("Unexpected value: " + expr.P);
     };
   }
 
-  private int g(GE expr) {
+  /**
+   * GroupExpr
+   */
+  private double g(GRE expr) {
     return this.evaluate(expr.E);
   }
 }

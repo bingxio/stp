@@ -58,11 +58,35 @@ class App {
     pm.put("-3 + 3", 0.00);
     pm.put("(-1 + (-2 + 3))", 0.00);
     pm.put("(-7 + (-3)) * (-1) / 7 + 8", 9.43);
+    pm.put("(-1) + 2 * (-5 + 5)", -1.00);
+//
+//    Will throw exceptions:
+//
+//    NameExpr
+    pm.put("a + b * 2", -99.00);
+//    CallExpr
+    pm.put("x(1, 2, 3)", -99.00);
+    pm.put("x(1) + 2", -99.00);
+    pm.put("x()()", -99.00);
+    pm.put("x(1, 2 + 3, 4 + 5 * 6)", -99.00);
+//    AssignExpr
+    pm.put("x = 2", -99.00);
+    pm.put("(x + y) = 4 + 2 * 9", -99.00);
+//    GetExpr
+    pm.put("x.y", -99.00);
+    pm.put("x.y = 2", -99.00);
+    pm.put("(x.x + y) + 2 * 3 + (a.b)", -99.00);
+//    IndexExpr
+    pm.put("x[1]", -99.00);
+    pm.put("x()[1 + 2 * 3] = 4", -99.00);
+    pm.put("x[0] = x[1]", -99.00);
 
     AtomicReference<Integer> passed = new AtomicReference<>(0);
 
     pm.forEach((k, v) -> {
       if (run(k) != v) {
+        if (v == -99.00) return; // Could not be evaluated
+
         try {
           throw new Exception("Failed K: " + k + " V: " + v);
         } catch (Exception e) {

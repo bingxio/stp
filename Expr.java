@@ -93,7 +93,7 @@ class NE extends Expr {
 
   @Override
   public String toString() {
-    return "<NE N=" + name + ">";
+    return "<NE N=" + name.k + ">";
   }
 }
 
@@ -102,12 +102,9 @@ class NE extends Expr {
  */
 class CE extends Expr {
   Expr callee;
+  Expr arguments;
 
-  ArrayList<Expr> arguments;
-
-  CE(Expr callee, ArrayList<Expr> arguments) {
-    this.callee = callee;
-    this.arguments = arguments;
+  CE() {
   }
 
   @Override
@@ -115,6 +112,24 @@ class CE extends Expr {
     return "<CE" +
         " C=" + callee +
         " A=" + arguments +
+        '>';
+  }
+}
+
+/**
+ * Arguments
+ */
+class ARG extends Expr {
+  ArrayList<Expr> exprArrayList;
+
+  ARG(ArrayList<Expr> exprArrayList) {
+    this.exprArrayList = exprArrayList;
+  }
+
+  @Override
+  public String toString() {
+    return "<ARG" +
+        " E=" + exprArrayList +
         '>';
   }
 }
@@ -135,31 +150,7 @@ class GE extends Expr {
   public String toString() {
     return "<GE" +
         " E=" + expr +
-        " N=" + name +
-        '>';
-  }
-}
-
-/**
- * SetExpr -> <Expr>.<T> = <E>
- */
-class SE extends Expr {
-  Expr expr;
-  Token name;
-  Expr value;
-
-  SE(Expr expr, Token name, Expr value) {
-    this.expr = expr;
-    this.name = name;
-    this.value = value;
-  }
-
-  @Override
-  public String toString() {
-    return "<SE" +
-        " E=" + expr +
-        " N=" + name +
-        " V=" + value +
+        " N=" + name.k +
         '>';
   }
 }

@@ -59,79 +59,87 @@ class Parser {
     if (op == null) return; // Must have an operator to append
     System.out.printf("-> OP: %s L: %s S: %s\n", op, l, s);
 
-    switch (op) {
-//      + - * /
-      case ADD, SUB, MUL, DIV -> {
-//        Append expression
-        if (l.empty()) {
+//    Append expression
+    if (l.empty()) {
 
-          if (s.size() > 1) {
-            Expr y = s.pop();
-            Expr x = s.pop();
+      if (s.size() > 1) {
+        Expr y = s.pop();
+        Expr x = s.pop();
 
-            if (x instanceof BE) {
-//              Precedence
-              Expr expr = this.setPrecedence(op, (BE) x, y);
-              s.push(expr);
-              return;
-            }
-//            BE Expr
-            s.push(new BE(x, op, y));
-            return;
-          }
-
-//          UE Expr
-          if (s.size() == 1) {
-            s.push(new UE(op, s.pop()));
-            return;
-          }
+        if (x instanceof BE) {
+//          Precedence
+          s.push(this.setPrecedence(op, (BE) x, y));
+          return;
         }
-
-//        Operand
-        Expr er = l.pop();
-
-        if (l.empty()) {
-//          UE Expr
-          if (s.empty()) {
-            s.push(new UE(op, er));
-            return;
-          }
-
-          Expr e = s.pop(); // To stack of expression
-
-//          If the expression is GRE, BE is generated directly
-          if (e instanceof GRE) {
-            s.push(new BE(e, op, er));
-            return;
-          }
-
-          if (e instanceof BE) {
-//          Set precedence
-            s.push(this.setPrecedence(op, (BE) e, er));
-          }
-
-          if (e instanceof UE) {
-            s.push(new BE(e, op, er));
-          }
-        } else {
-//          Two operands of pop generate BE
-          s.push(new BE(l.pop(), op, er));
-        }
+//        BE Expr
+        s.push(new BE(x, op, y));
+        return;
       }
 
-      default -> throw new IllegalArgumentException("Unexpected value: " + op);
+//      Unary Expr
+      if (s.size() == 1) {
+        s.push(new UE(op, s.pop()));
+        return;
+      }
     }
+
+//    Operand
+    Expr er = l.pop();
+
+    if (l.empty()) {
+//      Unary Expr
+      if (s.empty()) {
+        s.push(new UE(op, er));
+        return;
+      }
+
+      Expr e = s.pop(); // To stack of expression
+
+//      Binary expression
+      if (e instanceof BE) {
+//        Set precedence
+        s.push(this.setPrecedence(op, (BE) e, er));
+      }
+//      Group expr
+//      Unary
+//      Call
+//      Get
+      if (e instanceof GRE || e instanceof UE ||
+          e instanceof CE || e instanceof GE) {
+        s.push(new BE(e, op, er));
+      }
+    } else {
+//      Two operands of pop generate BE
+      s.push(new BE(l.pop(), op, er));
+    }
+  }
+
+  //  Return the previous of token literal is equal?
+  boolean previous(String k) {
+    if (p - 1 == -1) {
+      return false;
+    }
+    return this.tokens.get(p - 1).k.equals(k);
+  }
+
+  //  Return expression of L or S stack
+  Expr getExpr(Stack<Expr> l, Stack<Expr> s) {
+    if (l.empty() && s.empty()) {
+      return null;
+    }
+    return l.empty() ? s.pop() : l.pop();
   }
 
   /**
    * Parse expression and return
    */
   Expr parse() {
-//    Op p = null; // TOP operator
-    Stack<Op> opStack = new Stack<>();
+    Op p = null; // TOP operator
 
     Stack<Expr> l = new Stack<>(); // Stack of operand
     Stack<Expr> s = new Stack<>(); // Stack of expression
+
+    ArrayList<Expr> args = new ArrayList<>(); // Arguments
 
     while (this.p < tokens.size()) {
       Token token = tokens.get(this.p); // Current token
@@ -141,35 +149,96 @@ class Parser {
 //          Push a new literal expression
           l.push(new I(Integer.parseInt(token.k)));
 //          Append expression
-          append(opStack.empty() ? null : opStack.pop(), l, s);
+          append(p, l, s);
 //          After appending set the top operator to null
+          p = null;
         }
 
 //          Operators
-        case "+", "-", "*", "/" -> opStack.push(from(token.k));
+        case "+", "-", "*", "/" -> p = from(token.k);
 
-//          Group Expression
+//          Group expression
         case "(" -> {
-//          Skip left paren symbol
-          this.p++;
-//          Generate GRE expression after recursive parsing
-          s.push(new GRE(this.parse()));
+//          CallExpr
+          boolean callE = previous("a") || previous("b") ||
+              previous("c") || previous("x") ||
+              previous("y") || previous("z") || previous(")");
 
-          append(opStack.empty() ? null : opStack.pop(), l, s);
+          this.p++; // Skip left paren symbol
+
+          if (callE) {
+            CE ce = new CE(); // Call Expression
+
+            ce.callee = getExpr(l, s);
+            ce.arguments = this.parse();
+
+            s.push(ce);
+          } else {
+//          Generate GRE expression after recursive parsing
+            s.push(new GRE(this.parse()));
+
+            append(p, l, s);
+            p = null;
+          }
         }
 
 //          Exit the current parsing when look right paren symbol
         case ")" -> {
-          return s.pop();
+          if (!args.isEmpty()) {
+            ArrayList<Expr> list = new ArrayList<>(args);
+            list.add(getExpr(l, s)); // back argument
+
+            return new ARG(list);
+          }
+          return getExpr(l, s);
+        }
+
+        case "," -> args.add(getExpr(l, s));
+
+//        Name expression
+        case "a", "b", "c", "x", "y", "z" -> {
+          l.push(new NE(token));
+//          Append expression
+          append(p, l, s);
+          p = null;
+        }
+
+//        Assign expression
+        case "=" -> {
+          Expr expr = getExpr(l, s);
+          this.p++; // Skip assignment symbol
+
+          s.push(new AE(expr, this.parse()));
+        }
+
+//        Get expression
+        case "." -> {
+          Expr expr = getExpr(l, s);
+          this.p++; // Skip dot symbol
+
+          s.push(new GE(expr, tokens.get(this.p)));
+        }
+
+//        Index expression
+        case "[" -> {
+          Expr expr = getExpr(l, s);
+          this.p++; // Skip left bracket symbol
+
+          s.push(new IE(expr, this.parse()));
+        }
+
+//        Exit the current parsing when look right bracket symbol
+        case "]" -> {
+          return getExpr(l, s);
         }
       }
-      this.p++;
+      this.p++; // For loop
 
-      if (!s.empty() && opStack.empty()) {
+      if (!s.empty() && p == null) {
         System.out.println(s.peek());
       }
     }
 //      Return the final expression at the top of the stack
-    return s.pop();
+    return getExpr(l, s);
   }
 }

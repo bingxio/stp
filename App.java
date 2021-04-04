@@ -43,13 +43,21 @@ class App {
    */
   static void testing() {
     Map<String, Double> pm = new HashMap<>();
-
+//    SimpleExpr
     pm.put("(1 + 2 + (3 + 4)) - 2 * 3", 4.0);
     pm.put("5 / 9 * 8 - 4 * 2 / 7", 3.34);
     pm.put("9 / 7 - (2 - 3 / 2)", 0.79);
     pm.put("(1 * 2) + (3 * 4) - (5 / 6)", 13.17);
     pm.put("4 / 7 * 5 / 9 + 3 / 7 * 5 / 9", 0.56);
     pm.put("1 + 2 3 + 4", 7.00);
+//    UnaryExpr
+    pm.put("-(2 + 3)", -5.00);
+    pm.put("-1 + (-2)", -3.00);
+    pm.put("-1 + (-3 + 4)", 0.00);
+    pm.put("-5 + 2 + 9", 6.00);
+    pm.put("-3 + 3", 0.00);
+    pm.put("(-1 + (-2 + 3))", 0.00);
+    pm.put("(-7 + (-3)) * (-1) / 7 + 8", 9.43);
 
     AtomicReference<Integer> passed = new AtomicReference<>(0);
 

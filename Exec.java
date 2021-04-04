@@ -16,6 +16,8 @@ class Exec {
       result = this.g((GRE) expr);
     } else if (expr instanceof I) {
       result = this.l((I) expr);
+    } else if (expr instanceof UE) {
+      result = this.u((UE) expr);
     } else {
       return -1;
     }
@@ -53,5 +55,16 @@ class Exec {
    */
   private double g(GRE expr) {
     return this.evaluate(expr.E);
+  }
+
+  /**
+   * UnaryExpr
+   */
+  private double u(UE expr) {
+    if (expr.op == Op.SUB) {
+      return -this.evaluate(expr.expr);
+    } else {
+      throw new IllegalStateException("Unexpected value: " + expr.op);
+    }
   }
 }

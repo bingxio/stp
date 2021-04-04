@@ -63,28 +63,40 @@ class Parser {
 //      + - * /
       case ADD, SUB, MUL, DIV -> {
 //        Append expression
-        if (l.empty() && s.size() > 1) {
-          Expr y = s.pop();
-          Expr x = s.pop();
+        if (l.empty()) {
 
-//          Two GRE expressions
-          if (x instanceof GRE && y instanceof GRE) {
+          if (s.size() > 1) {
+            Expr y = s.pop();
+            Expr x = s.pop();
+
+            if (x instanceof BE) {
+//              Precedence
+              Expr expr = this.setPrecedence(op, (BE) x, y);
+              s.push(expr);
+              return;
+            }
+//            BE Expr
             s.push(new BE(x, op, y));
             return;
           }
 
-          assert x instanceof BE;
-//          BE and GRE were added
-          Expr expr = this.setPrecedence(op, (BE) x, y);
-          s.push(expr);
-
-          return;
+//          UE Expr
+          if (s.size() == 1) {
+            s.push(new UE(op, s.pop()));
+            return;
+          }
         }
 
 //        Operand
         Expr er = l.pop();
 
         if (l.empty()) {
+//          UE Expr
+          if (s.empty()) {
+            s.push(new UE(op, er));
+            return;
+          }
+
           Expr e = s.pop(); // To stack of expression
 
 //          If the expression is GRE, BE is generated directly
@@ -92,10 +104,15 @@ class Parser {
             s.push(new BE(e, op, er));
             return;
           }
-//          Set precedence
-          Expr expr = this.setPrecedence(op, (BE) e, er);
 
-          s.push(expr);
+          if (e instanceof BE) {
+//          Set precedence
+            s.push(this.setPrecedence(op, (BE) e, er));
+          }
+
+          if (e instanceof UE) {
+            s.push(new BE(e, op, er));
+          }
         } else {
 //          Two operands of pop generate BE
           s.push(new BE(l.pop(), op, er));
@@ -110,7 +127,8 @@ class Parser {
    * Parse expression and return
    */
   Expr parse() {
-    Op p = null; // TOP operator
+//    Op p = null; // TOP operator
+    Stack<Op> opStack = new Stack<>();
 
     Stack<Expr> l = new Stack<>(); // Stack of operand
     Stack<Expr> s = new Stack<>(); // Stack of expression
@@ -123,13 +141,12 @@ class Parser {
 //          Push a new literal expression
           l.push(new I(Integer.parseInt(token.k)));
 //          Append expression
-          append(p, l, s);
+          append(opStack.empty() ? null : opStack.pop(), l, s);
 //          After appending set the top operator to null
-          p = null;
         }
 
 //          Operators
-        case "+", "-", "*", "/" -> p = from(token.k);
+        case "+", "-", "*", "/" -> opStack.push(from(token.k));
 
 //          Group Expression
         case "(" -> {
@@ -138,8 +155,7 @@ class Parser {
 //          Generate GRE expression after recursive parsing
           s.push(new GRE(this.parse()));
 
-          append(p, l, s);
-          p = null;
+          append(opStack.empty() ? null : opStack.pop(), l, s);
         }
 
 //          Exit the current parsing when look right paren symbol
@@ -148,8 +164,8 @@ class Parser {
         }
       }
       this.p++;
-//      Dissemble peek of expr stack
-      if (!s.empty() && p == null) {
+
+      if (!s.empty() && opStack.empty()) {
         System.out.println(s.peek());
       }
     }

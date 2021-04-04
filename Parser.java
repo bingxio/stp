@@ -35,8 +35,6 @@ class Parser {
     return switch (op) {
       case ADD, SUB -> 1;
       case MUL, DIV -> 2;
-
-      default -> throw new IllegalArgumentException("Unexpected value: " + op);
     };
   }
 
@@ -59,7 +57,7 @@ class Parser {
    */
   void append(Op op, Stack<Expr> l, Stack<Expr> s) {
     if (op == null) return; // Must have an operator to append
-    System.out.printf("-> %s%s\n", l, s);
+    System.out.printf("-> OP: %s L: %s S: %s\n", op, l, s);
 
     switch (op) {
 //      + - * /
@@ -112,36 +110,36 @@ class Parser {
    * Parse expression and return
    */
   Expr parse() {
-    Op op = null; // TOP operator
+    Op p = null; // TOP operator
 
     Stack<Expr> l = new Stack<>(); // Stack of operand
     Stack<Expr> s = new Stack<>(); // Stack of expression
 
-    while (p < tokens.size()) {
-      Token token = tokens.get(p); // Current token
+    while (this.p < tokens.size()) {
+      Token token = tokens.get(this.p); // Current token
 
       switch (token.k) {
         case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" -> {
 //          Push a new literal expression
           l.push(new I(Integer.parseInt(token.k)));
 //          Append expression
-          append(op, l, s);
+          append(p, l, s);
 //          After appending set the top operator to null
-          op = null;
+          p = null;
         }
 
 //          Operators
-        case "+", "-", "*", "/" -> op = from(token.k);
+        case "+", "-", "*", "/" -> p = from(token.k);
 
 //          Group Expression
         case "(" -> {
 //          Skip left paren symbol
-          p++;
+          this.p++;
 //          Generate GRE expression after recursive parsing
           s.push(new GRE(this.parse()));
 
-          append(op, l, s);
-          op = null;
+          append(p, l, s);
+          p = null;
         }
 
 //          Exit the current parsing when look right paren symbol
@@ -149,9 +147,9 @@ class Parser {
           return s.pop();
         }
       }
-      p++;
+      this.p++;
 //      Dissemble peek of expr stack
-      if (!s.empty() && op == null) {
+      if (!s.empty() && p == null) {
         System.out.println(s.peek());
       }
     }

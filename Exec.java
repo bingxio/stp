@@ -38,15 +38,13 @@ class Exec {
     double x = this.evaluate(expr.L); // L
     double y = this.evaluate(expr.R); // R
 
-    System.out.printf("x: %.2f \t y: %.2f \t p: %s\n", x, y, expr.P);
+    System.out.printf("L: %.2f \t R: %.2f \t P: %s\n", x, y, expr.P);
 
     return switch (expr.P) { // P
       case ADD -> x + y;
       case SUB -> x - y;
       case MUL -> x * y;
       case DIV -> x / y;
-
-      default -> throw new IllegalArgumentException("Unexpected value: " + expr.P);
     };
   }
 

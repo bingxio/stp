@@ -4,7 +4,7 @@ package com.example;
  * Operator
  */
 enum Op {
-  ADD, SUB, MUL, DIV, RP;
+  ADD, SUB, MUL, DIV;
 
   @Override
   public String toString() {
@@ -13,8 +13,6 @@ enum Op {
       case SUB -> "-";
       case MUL -> "*";
       case DIV -> "/";
-
-      case RP -> ")";
     };
   }
 }

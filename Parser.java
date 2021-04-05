@@ -104,9 +104,13 @@ class Parser {
 //      Unary
 //      Call
 //      Get
-      if (e instanceof GRE || e instanceof UE ||
-          e instanceof CE || e instanceof GE) {
-        s.push(new BE(e, op, er));
+      else if (
+          e instanceof GRE
+              || e instanceof UE
+              || e instanceof CE
+              || e instanceof GE
+      ) {
+        s.push(new BE(e, op, er)); // To BE Expr
       }
     } else {
 //      Two operands of pop generate BE
@@ -116,18 +120,26 @@ class Parser {
 
   //  Return the previous of token literal is equal?
   boolean previous(String k) {
-    if (p - 1 == -1) {
+    if (
+        p - 1 == -1
+    ) {
       return false;
+    } else {
+      return this.tokens.
+          get(p - 1).k.equals(k); // Previous
     }
-    return this.tokens.get(p - 1).k.equals(k);
   }
 
   //  Return expression of L or S stack
   Expr getExpr(Stack<Expr> l, Stack<Expr> s) {
-    if (l.empty() && s.empty()) {
+    if (l.empty() &&
+        s.empty()
+    ) {
       return null;
+    } else {
+      return l.empty() ?
+          s.pop() : l.pop(); // POP it
     }
-    return l.empty() ? s.pop() : l.pop();
   }
 
   /**
@@ -139,12 +151,13 @@ class Parser {
     Stack<Expr> l = new Stack<>(); // Stack of operand
     Stack<Expr> s = new Stack<>(); // Stack of expression
 
-    ArrayList<Expr> args = new ArrayList<>(); // Arguments
+    ArrayList<Expr> args = new ArrayList<>(); // Arguments for CE Expr
 
     while (this.p < tokens.size()) {
       Token token = tokens.get(this.p); // Current token
 
       switch (token.k) {
+//        Literal Expr
         case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" -> {
 //          Push a new literal expression
           l.push(new I(Integer.parseInt(token.k)));
@@ -154,10 +167,10 @@ class Parser {
           p = null;
         }
 
-//          Operators
+//        Operators
         case "+", "-", "*", "/" -> p = from(token.k);
 
-//          Group expression
+//        Group expression
         case "(" -> {
 //          CallExpr
           boolean callE = previous("a") || previous("b") ||
@@ -182,17 +195,20 @@ class Parser {
           }
         }
 
-//          Exit the current parsing when look right paren symbol
+//        Exit the current parsing when look right paren symbol
         case ")" -> {
+          // Current parsing CE expression.
           if (!args.isEmpty()) {
-            ArrayList<Expr> list = new ArrayList<>(args);
+            ArrayList<Expr> list = new ArrayList<>(args); // Retold
             list.add(getExpr(l, s)); // back argument
 
             return new ARG(list);
+          } else {
+            return getExpr(l, s);
           }
-          return getExpr(l, s);
         }
 
+//        Arguments split
         case "," -> args.add(getExpr(l, s));
 
 //        Name expression
@@ -234,6 +250,7 @@ class Parser {
       }
       this.p++; // For loop
 
+//      Dissemble message
       if (!s.empty() && p == null) {
         System.out.println(s.peek());
       }

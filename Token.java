@@ -9,9 +9,4 @@ class Token {
   Token(String k) {
     this.k = k;
   }
-
-  @Override
-  public String toString() {
-    return "<Token" + " K='" + k + '\'' + '>';
-  }
 }

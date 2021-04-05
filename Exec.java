@@ -10,15 +10,24 @@ class Exec {
   double evaluate(Expr expr) {
     double result;
 
+//    BE
     if (expr instanceof BE) {
       result = this.l((BE) expr);
-    } else if (expr instanceof GRE) {
+    }
+//    GRE
+    else if (expr instanceof GRE) {
       result = this.g((GRE) expr);
-    } else if (expr instanceof I) {
+    }
+//    I
+    else if (expr instanceof I) {
       result = this.l((I) expr);
-    } else if (expr instanceof UE) {
+    }
+//    UE
+    else if (expr instanceof UE) {
       result = this.u((UE) expr);
-    } else {
+    }
+//    Unknown
+    else {
       return -1;
     }
 

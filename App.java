@@ -74,7 +74,7 @@ class App {
     pm.put("(x + y) = 4 + 2 * 9", -99.00);
 //    GetExpr
     pm.put("x.y", -99.00);
-    pm.put("x.y = 2", -99.00);
+    pm.put("x.y = 2 + 3 * 4", -99.00);
     pm.put("(x.x + y) + 2 * 3 + (a.b)", -99.00);
 //    IndexExpr
     pm.put("x[1]", -99.00);

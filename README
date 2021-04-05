@@ -1,0 +1,13 @@
+Introduction
+
+STP is a stack based expression parser. This article will first explain
+the parsing of four expressions, including binary and group
+expressions. Then it analyzes the basic expressions in programming
+language, such as GET, SET, UNARY, CALL and so on. The advantage is
+that you only need to traverse the tokens array once, set the priority
+and judge the relationship between the front and back token.
+Stack structure if a very simple data structure, PEEK the top value,
+POP the top value, PUSH value, first in first out principle. STP contains
+two stack and a top operator variable, the structure is as follows:
+
+Refer to PDF paper: https://bingxio.fun/STP.pdf

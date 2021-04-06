@@ -3,6 +3,7 @@ package com.example;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -11,6 +12,19 @@ import java.util.concurrent.atomic.AtomicReference;
 class App {
   public static void main(String[] args) {
     testing();
+//    command_line();
+  }
+
+  /**
+   * To command line mode
+   */
+  static void command_line() {
+    Scanner scanner = new Scanner(System.in);
+
+    while (scanner.hasNext()) {
+      run(scanner.nextLine());
+    }
+    scanner.close();
   }
 
   /**
@@ -81,7 +95,8 @@ class App {
     pm.put("x()[1 + 2 * 3] = 4", -99.00);
     pm.put("x[0] = x[1]", -99.00);
 
-    AtomicReference<Integer> passed = new AtomicReference<>(0);
+    AtomicReference<Integer> passed =
+        new AtomicReference<>(0);
 
     pm.forEach((k, v) -> {
       if (run(k) != v) {
@@ -93,10 +108,11 @@ class App {
           e.printStackTrace();
         }
       } else {
-        passed.getAndSet(passed.get() + 1);
+        passed.getAndSet(passed.get() + 1); // PASS
       }
     });
 
-    System.out.printf("\n\tCOUNT: %d | PASS: %d\n", pm.size(), passed.get());
+    System.out.printf(
+        "\n\tCOUNT: %d | PASS: %d\n", pm.size(), passed.get());
   }
 }

@@ -24,7 +24,9 @@ class Parser {
       case "*" -> Op.MUL;
       case "/" -> Op.DIV;
 
-      default -> throw new IllegalStateException("Unexpected value: " + l);
+      default -> {
+        throw new IllegalStateException("Unexpected value: " + l);
+      }
     };
   }
 
@@ -56,7 +58,8 @@ class Parser {
    * Append expression
    */
   void append(Op op, Stack<Expr> l, Stack<Expr> s) {
-    if (op == null) return; // Must have an operator to append
+    if (op == null)
+      return; // Must have an operator to append
     System.out.printf("-> OP: %s L: %s S: %s\n", op, l, s);
 
 //    Append expression
@@ -105,10 +108,10 @@ class Parser {
 //      Call
 //      Get
       else if (
-          e instanceof GRE
-              || e instanceof UE
-              || e instanceof CE
-              || e instanceof GE
+        e instanceof GRE
+          || e instanceof UE
+          || e instanceof CE
+          || e instanceof GE
       ) {
         s.push(new BE(e, op, er)); // To BE Expr
       }
@@ -121,24 +124,24 @@ class Parser {
   //  Return the previous of token literal is equal?
   boolean previous(String k) {
     if (
-        p - 1 == -1
+      p - 1 == -1
     ) {
       return false;
     } else {
       return this.tokens.
-          get(p - 1).k.equals(k); // Previous
+        get(p - 1).k.equals(k); // Previous
     }
   }
 
   //  Return expression of L or S stack
   Expr getExpr(Stack<Expr> l, Stack<Expr> s) {
     if (l.empty() &&
-        s.empty()
+      s.empty()
     ) {
       return null;
     } else {
       return l.empty() ?
-          s.pop() : l.pop(); // POP it
+        s.pop() : l.pop(); // POP it
     }
   }
 
@@ -173,9 +176,14 @@ class Parser {
 //        Group expression
         case "(" -> {
 //          CallExpr
-          boolean callE = previous("a") || previous("b") ||
-              previous("c") || previous("x") ||
-              previous("y") || previous("z") || previous(")");
+          boolean callE =
+            previous("a")
+              || previous("b")
+              || previous("c")
+              || previous("x")
+              || previous("y")
+              || previous("z")
+              || previous(")");
 
           this.p++; // Skip left paren symbol
 

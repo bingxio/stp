@@ -2,6 +2,8 @@
 // Copyright (c) 2021 bingxio, All rights reserved.
 // 
 
+
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -649,16 +651,65 @@ struct E *parse() {
   return get_expr(&l, &s); // Return expr
 }
 
+bool eval_E = false; /* Is evaluated has error */
+
+/*
+ * Test evaluate
+ */
+double eval(struct E *expr) {
+  double result; /* Value */
+
+  switch (expr->k) {
+    case BE: {
+      struct BE *be = (struct BE *)expr;
+
+      if (be->P == ADD)
+        result = eval(be->L) + eval(be->R);
+      if (be->P == SUB)
+        result = eval(be->L) - eval(be->R);
+      if (be->P == MUL)
+        result = eval(be->L) * eval(be->R);
+      if (be->P == DIV)
+        result = eval(be->L) / eval(be->R);
+    } break;
+    case GRE:
+      result = eval(((struct GRE *)expr)->G);
+      break;
+    case LE:
+      result = (double)((struct LE *)expr)->k - 48;
+      break;
+    case UE: {
+      struct UE *ue = (struct UE *)expr;
+
+      if (ue->P != SUB) {
+        fprintf(stderr, "ERROR: unexpected operator '%s'", to(ue->P));
+        exit(-1);
+      } else {
+        return -eval(ue->R);  /* Negative */
+      }
+    } break;
+    default:
+      fprintf(stderr, "WARNING: can not evaluate\n");
+      eval_E = true;   /* NIL CODE */
+  }
+  return result;
+}
+
 int main() {
   while (true) {
     command_mode();             // INPUT
     if (!lexcial()) continue;   // LEXCIAL
 
     struct E *expr = parse();
-    printf("%s\n", dissemble_expr(expr));
+    printf("%s\n", dissemble_expr(expr));   /* DIS */
+    
+    double r = eval(expr);
+    if (!eval_E) printf("%lf\n", r);     /* EVAL */
 
     free(line);
     free(tokens);               // END
+
+    eval_E = false;
   }
   return 0;
 }

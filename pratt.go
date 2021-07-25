@@ -2,197 +2,309 @@
 // blog post: https://bingxio.fun/
 package main
 
-import "fmt"
-
-const (
-	Lowest = iota
-
-	Number
-	Plus
-	Minus
-	Asterisk
-	Slash
-	LParen
-	RParen
-
-	Eof
-
-	Unary
+import (
+	"fmt"
 )
 
-var precedence = map[int]int{
-	Number:   1,
-	Plus:     2,
-	Minus:    2,
-	Asterisk: 3,
-	Slash:    3,
-	LParen:   4,
-}
+const (
+	Number = iota
+	Ident
+	Add
+	Sub
+	Mul
+	Div
+	Lp
+	Rp
+	Gr
+	GrEq
+	Le
+	LeEq
+	EqEq
+	NotEq
+	Or
+	And
+	Dot
+	Com
+	Eof
+)
+
+const (
+	lowest  = iota
+	or      // |
+	and     // &
+	eq      // == !=
+	compare // > >= < <=
+	term    // + -
+	factor  // * /
+	unary   // - !
+	call    // . () []
+)
 
 type token struct {
 	kind    int
 	literal string
 }
 
-func main() {
-	//tokens := []token{ /* 2 + 3 * 4 + (5 + 6) */
-	//	{kind: Number, literal: "2"},
-	//	{kind: Plus},
-	//	{kind: Number, literal: "3"},
-	//	{kind: Asterisk},
-	//	{kind: Number, literal: "4"},
-	//	{kind: Plus},
-	//	{kind: LParen},
-	//	{kind: Number, literal: "5"},
-	//	{kind: Plus},
-	//	{kind: Number, literal: "6"},
-	//	{kind: RParen},
-	//	{kind: Eof},
-	//}
-	//tokens := []token{ /* -3 * 5 */
-	//	{kind: Minus},
-	//	{kind: Number, literal: "3"},
-	//	{kind: Asterisk},
-	//	{kind: Number, literal: "5"},
-	//	{kind: Eof},
-	//}
-	//tokens := []token{ /* (6 + 3) / (5 / 2) */
-	//	{kind: LParen},
-	//	{kind: Number, literal: "6"},
-	//	{kind: Plus},
-	//	{kind: Number, literal: "3"},
-	//	{kind: RParen},
-	//	{kind: Slash},
-	//	{kind: LParen},
-	//	{kind: Number, literal: "5"},
-	//	{kind: Slash},
-	//	{kind: Number, literal: "2"},
-	//	{kind: RParen},
-	//	{kind: Eof},
-	//}
-	//tokens := []token{ /* 2 + 3 * 4 */
-	//	{kind: Number, literal: "2"},
-	//	{kind: Plus},
-	//	{kind: Number, literal: "3"},
-	//	{kind: Asterisk},
-	//	{kind: Number, literal: "4"},
-	//	{kind: Eof},
-	//}
-	tokens := []token{ /* 2 + 3 + 4 */
-		{kind: Number, literal: "2"},
-		{kind: Plus},
-		{kind: Number, literal: "3"},
-		{kind: Plus},
-		{kind: Number, literal: "4"},
-		{kind: Eof},
-	}
-	p := parser{
-		iter: func(tokens []token) func() token {
-			i := -1
-			return func() token {
-				i++
-				return tokens[i]
-			}
-		}(tokens),
-		prefix: map[int]func(){},
-		infix:  map[int]func(){},
-	}
-	p.parse()
+type rule struct {
+	prefix     func()
+	infix      func()
+	precedence int
 }
 
 type parser struct {
-	iter   func() token
-	cur    token
-	peek   token
-	prefix map[int]func()
-	infix  map[int]func()
+	iter func() token
+	pre  token
+	cur  token
+	rule map[int]rule
 }
 
-func (p *parser) parse() {
-	p.prefix[Number] = p.number
-	p.prefix[Minus] = p.unary
-	p.prefix[LParen] = p.group
-
-	p.infix[Plus] = p.binary
-	p.infix[Minus] = p.binary
-	p.infix[Asterisk] = p.binary
-	p.infix[Slash] = p.binary
-
-	p.nextToken()
-	p.nextToken()
-
-	p.parsePrecedence(Lowest)
+func (p *parser) next() {
+	p.pre = p.cur
+	p.cur = p.iter()
 }
 
-func (p *parser) parsePrecedence(precedence int) {
-	prefix := p.prefix[p.cur.kind]
-	if prefix == nil {
-		panic("no prefix parse function")
+func (p *parser) register() {
+	p.rule[Number] = rule{p.literal, nil, lowest}
+	p.rule[Ident] = rule{p.literal, nil, lowest}
+
+	p.rule[Add] = rule{nil, p.binary, term}
+	p.rule[Sub] = rule{p.unary, p.binary, term}
+
+	p.rule[Mul] = rule{nil, p.binary, factor}
+	p.rule[Div] = rule{nil, p.binary, factor}
+
+	p.rule[Or] = rule{nil, p.binary, or}
+	p.rule[And] = rule{nil, p.binary, and}
+
+	p.rule[EqEq] = rule{nil, p.binary, eq}
+	p.rule[NotEq] = rule{nil, p.binary, eq}
+
+	p.rule[Gr] = rule{nil, p.binary, compare}
+	p.rule[GrEq] = rule{nil, p.binary, compare}
+	p.rule[Le] = rule{nil, p.binary, compare}
+	p.rule[LeEq] = rule{nil, p.binary, compare}
+
+	p.rule[Dot] = rule{nil, p.get, call}
+	p.rule[Lp] = rule{p.group, p.call, call}
+}
+
+func (p parser) getPrePrecedence() int {
+	if v, ok := p.rule[p.pre.kind]; ok {
+		return v.precedence
 	}
-	prefix()
-	for precedence < p.getPeekPrecedence() {
-		infix := p.infix[p.peek.kind]
-		if infix == nil {
-			panic("no infix parse function")
-		}
-		p.nextToken()
-		infix()
-	}
-}
-
-func (p *parser) nextToken() {
-	p.cur = p.peek
-	p.peek = p.iter()
+	return lowest
 }
 
 func (p parser) getCurPrecedence() int {
-	if v, ok := precedence[p.cur.kind]; ok {
-		return v
+	if v, ok := p.rule[p.cur.kind]; ok {
+		return v.precedence
 	}
-	return Lowest
+	return lowest
 }
 
-func (p parser) getPeekPrecedence() int {
-	if v, ok := precedence[p.peek.kind]; ok {
-		return v
+func (p *parser) goPrecedence(precedence int) {
+	r := p.rule[p.pre.kind]
+	if r.prefix == nil {
+		panic("no parse prefix function: " + p.pre.literal)
 	}
-	return Lowest
+	r.prefix()
+	for precedence < p.getCurPrecedence() {
+		r := p.rule[p.cur.kind]
+		p.next()
+		r.infix()
+	}
 }
 
-func (p *parser) number() {
-	fmt.Println("LOAD_CONST", p.cur.literal)
+func (p *parser) literal() {
+	fmt.Println(p.pre.literal)
 }
 
 func (p *parser) unary() {
-	p.nextToken()
-	p.parsePrecedence(Unary)
-	fmt.Println("NOT")
+	op := p.pre
+	p.next()
+	p.goPrecedence(unary)
+	fmt.Println("UNARY", op.literal)
 }
 
 func (p *parser) binary() {
-	op := p.cur
-
-	p.nextToken()
-	p.parsePrecedence(p.getCurPrecedence() + 1)
-
-	switch op.kind {
-	case Plus:
-		fmt.Println("PLUS")
-	case Minus:
-		fmt.Println("MINUS")
-	case Asterisk:
-		fmt.Println("ASTERISK")
-	case Slash:
-		fmt.Println("SLASH")
-	}
+	op := p.pre
+	pr := p.getPrePrecedence()
+	p.next()
+	p.goPrecedence(pr)
+	fmt.Println("BIN", op.literal)
 }
 
 func (p *parser) group() {
-	p.nextToken()
-	p.parsePrecedence(Lowest)
-
-	p.nextToken()
-	if p.cur.kind != RParen {
+	p.next()
+	p.goPrecedence(lowest)
+	if p.cur.kind != Rp {
 		panic("lost right paren symbol")
+	} else {
+		p.next()
+	}
+}
+
+func (p *parser) get() {
+	p.next()
+	fmt.Println("GET", p.pre.literal)
+}
+
+func (p *parser) call() {
+	p.next()
+	count := 0
+	for p.pre.kind != Rp {
+		p.goPrecedence(lowest)
+		count++
+		p.next()
+		if p.pre.kind == Rp {
+			break
+		} else if p.pre.kind != Com {
+			panic("lost comma symbol in arguments")
+		}
+		p.next()
+	}
+	fmt.Println("CALL", count)
+}
+
+func main() {
+	tokens := [][]token{
+		{
+			// -3 + 4 * (5 + 2) - 8
+			{Sub, "-"},
+			{Number, "3"},
+			{Add, "+"},
+			{Number, "4"},
+			{Mul, "*"},
+			{Lp, "("},
+			{Number, "5"},
+			{Add, "+"},
+			{Number, "2"},
+			{Rp, ")"},
+			{Sub, "-"},
+			{Number, "8"},
+			{Eof, "eof"},
+		},
+		{
+			// 2 + 3 * 4
+			{Number, "2"},
+			{Add, "+"},
+			{Number, "3"},
+			{Mul, "*"},
+			{Number, "4"},
+			{Eof, "eof"},
+		},
+		{
+			// -3 * 2
+			{Sub, "-"},
+			{Number, "3"},
+			{Mul, "*"},
+			{Number, "2"},
+			{Eof, "eof"},
+		},
+		{
+			// a + b < c == 5
+			{Ident, "a"},
+			{Add, "+"},
+			{Ident, "b"},
+			{Le, "<"},
+			{Ident, "c"},
+			{EqEq, "=="},
+			{Number, "5"},
+			{Eof, "eof"},
+		},
+		{
+			// a | b
+			{Ident, "a"},
+			{Or, "|"},
+			{Ident, "b"},
+			{Eof, "eof"},
+		},
+		{
+			// -(a + b) + c - 1 & b + c / 2
+			{Sub, "-"},
+			{Lp, "("},
+			{Ident, "a"},
+			{Add, "+"},
+			{Ident, "b"},
+			{Rp, ")"},
+			{Add, "+"},
+			{Ident, "c"},
+			{Sub, "-"},
+			{Number, "1"},
+			{And, "&"},
+			{Ident, "b"},
+			{Add, "+"},
+			{Ident, "c"},
+			{Div, "/"},
+			{Number, "2"},
+			{Eof, "eof"},
+		},
+		{
+			// x.a > y & c > x.b
+			{Ident, "x"},
+			{Dot, "."},
+			{Ident, "a"},
+			{Gr, ">"},
+			{Ident, "y"},
+			{And, "&"},
+			{Ident, "c"},
+			{Gr, ">"},
+			{Ident, "x"},
+			{Dot, "."},
+			{Ident, "b"},
+			{Eof, "eof"},
+		},
+		{
+			// x + foo() * y.z
+			{Ident, "x"},
+			{Add, "+"},
+			{Ident, "foo"},
+			{Lp, "("},
+			{Rp, ")"},
+			{Mul, "*"},
+			{Ident, "y"},
+			{Dot, "."},
+			{Ident, "z"},
+			{Eof, "eof"},
+		},
+		{
+			// foo(1, a + b, x.y, a + b * c)
+			{Ident, "foo"},
+			{Lp, "("},
+			{Number, "1"},
+			{Com, ","},
+			{Ident, "a"},
+			{Add, "+"},
+			{Ident, "b"},
+			{Com, ","},
+			{Ident, "x"},
+			{Dot, "."},
+			{Ident, "y"},
+			{Com, ","},
+			{Ident, "a"},
+			{Add, "+"},
+			{Ident, "b"},
+			{Mul, "*"},
+			{Ident, "c"},
+			{Rp, ")"},
+			{Eof, "eof"},
+		},
+	}
+	for k, v := range tokens {
+		fmt.Println("=== RUNNING: ", k+1, "===")
+		p := parser{
+			iter: func(tokens []token) func() token {
+				i := -1
+				return func() token {
+					i++
+					return tokens[i]
+				}
+			}(v),
+			rule: make(map[int]rule),
+		}
+		p.next()
+		p.next()
+		p.register()
+		p.goPrecedence(lowest)
 	}
 }
